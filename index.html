@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="The Plan">
+<meta name="theme-color" content="#0D0F11">
+<title>The Plan</title>
+<link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiVGhlIFBsYW4iLCJzaG9ydF9uYW1lIjoiUGxhbiIsInN0YXJ0X3VybCI6Ii4iLCJkaXNwbGF5Ijoic3RhbmRhbG9uZSIsImJhY2tncm91bmRfY29sb3IiOiIjMEQwRjExIiwidGhlbWVfY29sb3IiOiIjMEQwRjExIn0=">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0D0F11;
+    --surface: #13161A;
+    --surface2: #0F1114;
+    --border: #1A1D21;
+    --border2: #2A2D31;
+    --text: #E8E4DC;
+    --text2: #999;
+    --text3: #777;
+    --text4: #666;
+    --text5: #555;
+    --text6: #444;
+    --gold: #D4A855;
+    --blue: #5BA0D6;
+    --green: #5EAA6B;
+    --purple: #B280CF;
+    --coral: #E07A5F;
+    --teal: #4ECDC4;
+    --mono: 'JetBrains Mono', monospace;
+    --sans: 'DM Sans', 'Helvetica Neue', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; min-height: 100dvh; overscroll-behavior: none; padding-bottom: env(safe-area-inset-bottom, 0); }
+  ::-webkit-scrollbar { width: 4px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+  button { font-family: inherit; cursor: pointer; }
+  .fade-in { animation: fadeIn 0.3s ease; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes checkPop { 0% { transform: scale(0.8); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+  .check-pop { animation: checkPop 0.2s ease; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.9/babel.min.js"></script>
+
+<script type="text/babel">
+const { useState, useEffect, useCallback, useRef } = React;
+
+const STORAGE_KEY = "the-plan-v3";
+
+const COLORS = {
+  math: "#D4A855", python: "#5BA0D6", physical: "#5EAA6B", reading: "#B280CF",
+  market: "#E07A5F", work: "#555", rest: "#666", network: "#4ECDC4",
+};
+const LABELS = {
+  math: "MATH", python: "PYTHON", physical: "FITNESS", reading: "READING",
+  market: "MARKETS", work: "WORK", rest: "REST", network: "NETWORK",
+};
+
+const schedule = {
+  Monday: {
+    subtitle: "Office · PUSH",
+    blocks: [
+      { id: "mon-0", type: "math", time: "6:00 – 6:50 AM", task: "Math study", detail: "Khan Academy — current module. Morning brain is sharpest for abstract work." },
+      { id: "mon-1", type: "work", time: "6:50 – 7:25", task: "Shower, get ready, drive to office", detail: "~15 min drive." },
+      { id: "mon-2", type: "market", time: "7:30 – 7:55 AM", task: "Pre-market check", detail: "S&P, VIX, 2s10s, gold, crude. Your view FIRST → Vital Knowledge → note divergence." },
+      { id: "mon-3", type: "work", time: "8:00 – 6:00 PM", task: "Work", detail: "Market book during lunch — 30 min adds up to 2.5 hrs/week." },
+      { id: "mon-4", type: "work", time: "6:00 – 6:35", task: "Commute → change → drive to gym", detail: "15 min home + 17 min to gym." },
+      { id: "mon-5", type: "physical", time: "6:35 – 7:30 PM", task: "Gym — PUSH", detail: "Bench, OHP, incline DB press, lateral raises, tricep pushdowns." },
+      { id: "mon-6", type: "rest", time: "7:30 – 8:05", task: "Drive home, shower, eat", detail: "" },
+      { id: "mon-7", type: "python", time: "8:10 – 9:10 PM", task: "Python study", detail: "Automate the Boring Stuff — current chapter. Build, don't just read." },
+      { id: "mon-8", type: "reading", time: "9:15 – 9:45 PM", task: "Reading", detail: "30 min on gym-office days. Market book or professional development." },
+      { id: "mon-9", type: "rest", time: "9:45 – 10:00", task: "Wind down → Sleep", detail: "No screens last 15 min. Lights out 10 PM." },
+    ],
+  },
+  Tuesday: {
+    subtitle: "Office · Swim — Double Study Day",
+    blocks: [
+      { id: "tue-0", type: "math", time: "6:00 – 6:50 AM", task: "Math study", detail: "Khan Academy — continue or review yesterday." },
+      { id: "tue-1", type: "work", time: "6:50 – 7:25", task: "Shower, get ready, drive to office", detail: "" },
+      { id: "tue-2", type: "market", time: "7:30 – 7:55 AM", task: "Pre-market check", detail: "Anything surprising from Monday's close? Note it." },
+      { id: "tue-3", type: "work", time: "8:00 – 6:00 PM", task: "Work", detail: "Market reading during lunch." },
+      { id: "tue-4", type: "work", time: "6:00 – 6:15", task: "Commute home", detail: "" },
+      { id: "tue-5", type: "physical", time: "6:25 – 7:00 PM", task: "Swim — pool downstairs", detail: "30-35 min. No drive = time saved for second study block." },
+      { id: "tue-6", type: "rest", time: "7:00 – 7:20", task: "Shower, eat", detail: "" },
+      { id: "tue-7", type: "python", time: "7:25 – 8:25 PM", task: "Python study", detail: "Full hour. Non-gym day = extra study time." },
+      { id: "tue-8", type: "reading", time: "8:30 – 9:30 PM", task: "Reading", detail: "Full hour. Longer reading on non-gym days." },
+      { id: "tue-9", type: "rest", time: "9:30 – 10:00", task: "Wind down → Sleep", detail: "" },
+    ],
+  },
+  Wednesday: {
+    subtitle: "Office · PULL",
+    blocks: [
+      { id: "wed-0", type: "python", time: "6:00 – 6:50 AM", task: "Python study", detail: "Swap to Python AM on Wednesdays to keep both tracks balanced." },
+      { id: "wed-1", type: "work", time: "6:50 – 7:25", task: "Shower, get ready, drive to office", detail: "" },
+      { id: "wed-2", type: "market", time: "7:30 – 7:55 AM", task: "Pre-market check", detail: "Midweek — is your Monday thesis holding?" },
+      { id: "wed-3", type: "work", time: "8:00 – 6:00 PM", task: "Work", detail: "Market reading during lunch." },
+      { id: "wed-4", type: "work", time: "6:00 – 6:35", task: "Commute → change → drive to gym", detail: "" },
+      { id: "wed-5", type: "physical", time: "6:35 – 7:30 PM", task: "Gym — PULL", detail: "Deadlift or barbell row, lat pulldown, cable rows, face pulls, curls." },
+      { id: "wed-6", type: "rest", time: "7:30 – 8:05", task: "Drive home, shower, eat", detail: "" },
+      { id: "wed-7", type: "math", time: "8:10 – 9:10 PM", task: "Math study", detail: "Evening math. Review + push into new material." },
+      { id: "wed-8", type: "reading", time: "9:15 – 9:45 PM", task: "Reading", detail: "30 min. Compressed on gym-office days." },
+      { id: "wed-9", type: "rest", time: "9:45 – 10:00", task: "Wind down → Sleep", detail: "" },
+    ],
+  },
+  Thursday: {
+    subtitle: "WFH · LEGS — Power Day",
+    blocks: [
+      { id: "thu-0", type: "math", time: "6:00 – 7:00 AM", task: "Math — full hour", detail: "No commute = full 60 min. Push into harder material." },
+      { id: "thu-1", type: "rest", time: "7:00 – 7:25", task: "Shower, breakfast", detail: "" },
+      { id: "thu-2", type: "market", time: "7:30 – 7:55 AM", task: "Pre-market check", detail: "Your view, Vital Knowledge, note divergence." },
+      { id: "thu-3", type: "work", time: "8:00 – 6:00 PM", task: "Work from home", detail: "Market reading during breaks." },
+      { id: "thu-4", type: "python", time: "6:05 – 7:05 PM", task: "Python — full hour", detail: "No commute = straight into study. Protect this block." },
+      { id: "thu-5", type: "rest", time: "7:05 – 7:25", task: "Change, drive to gym", detail: "" },
+      { id: "thu-6", type: "physical", time: "7:25 – 8:20 PM", task: "Gym — LEGS", detail: "Squats, RDLs, leg press, walking lunges, calf raises." },
+      { id: "thu-7", type: "rest", time: "8:20 – 8:55", task: "Drive home, shower, eat", detail: "" },
+      { id: "thu-8", type: "reading", time: "9:00 – 9:40 PM", task: "Reading", detail: "Market book or lighter professional reading." },
+      { id: "thu-9", type: "rest", time: "9:40 – 10:00", task: "Wind down → Sleep", detail: "" },
+    ],
+  },
+  Friday: {
+    subtitle: "WFH · UPPER — Power Day",
+    blocks: [
+      { id: "fri-0", type: "python", time: "6:00 – 7:00 AM", task: "Python — full hour", detail: "Alternate AM subjects to keep both tracks fresh." },
+      { id: "fri-1", type: "rest", time: "7:00 – 7:25", task: "Shower, breakfast", detail: "" },
+      { id: "fri-2", type: "market", time: "7:30 – 7:55 AM", task: "Pre-market check", detail: "End of week — did your Monday thesis hold? Note for Saturday journal." },
+      { id: "fri-3", type: "work", time: "8:00 – 6:00 PM", task: "Work from home", detail: "" },
+      { id: "fri-4", type: "math", time: "6:05 – 7:05 PM", task: "Math — full hour", detail: "End-of-week math. Review the week + push forward." },
+      { id: "fri-5", type: "rest", time: "7:05 – 7:25", task: "Change, drive to gym", detail: "" },
+      { id: "fri-6", type: "physical", time: "7:25 – 8:20 PM", task: "Gym — UPPER", detail: "Bench, rows, OHP, pull-ups, lateral raises, curls. Compound pairs." },
+      { id: "fri-7", type: "rest", time: "8:20 – 8:55", task: "Drive home, shower, eat", detail: "" },
+      { id: "fri-8", type: "reading", time: "9:00 – 9:40 PM", task: "Reading — lighter", detail: "Novel or communication book. It's Friday." },
+      { id: "fri-9", type: "rest", time: "9:40 –", task: "Free evening", detail: "Protected. Social, chess, whatever." },
+    ],
+  },
+  Saturday: {
+    subtitle: "LOWER + Run/Swim + Journal",
+    blocks: [
+      { id: "sat-0", type: "rest", time: "Wake ~7:00 AM", task: "Extra sleep — no alarm", detail: "Wake naturally." },
+      { id: "sat-1", type: "math", time: "7:15 – 8:15 AM", task: "Math — deep session", detail: "Longest focus block. Hardest concept or push ahead." },
+      { id: "sat-2", type: "rest", time: "8:15 – 8:30", task: "Break", detail: "" },
+      { id: "sat-3", type: "python", time: "8:30 – 9:30 AM", task: "Python — project time", detail: "Not tutorials. Build something. Automate, analyze, apply." },
+      { id: "sat-4", type: "rest", time: "9:30 – 10:00", task: "Breakfast", detail: "" },
+      { id: "sat-5", type: "physical", time: "10:00 – 11:15 AM", task: "Drive → Gym — LOWER → Drive", detail: "Front squats or variation, hip thrusts, leg curls, lunges. Different emphasis than Thursday." },
+      { id: "sat-6", type: "rest", time: "11:15 – 11:30", task: "Quick change", detail: "" },
+      { id: "sat-7", type: "physical", time: "11:30 – 12:05 PM", task: "Run or Swim", detail: "Pool downstairs or run. 30-35 min. Already warm from lifting." },
+      { id: "sat-8", type: "rest", time: "12:05 – 12:35", task: "Shower, eat", detail: "" },
+      { id: "sat-9", type: "market", time: "12:40 – 1:25 PM", task: "Weekly Market Journal", detail: "Macro view · trade idea w/ invalidation · review last week · one thing you didn't understand." },
+      { id: "sat-10", type: "reading", time: "Afternoon", task: "Novel or communication book", detail: "1-2 hours whenever. Improve articulation and breadth." },
+      { id: "sat-11", type: "rest", time: "Evening", task: "Free", detail: "Social, errands, life. Sleep by 10:30." },
+    ],
+  },
+  Sunday: {
+    subtitle: "Full Rest · Recharge",
+    blocks: [
+      { id: "sun-0", type: "rest", time: "Morning", task: "Sleep in — no alarm", detail: "Wake naturally." },
+      { id: "sun-1", type: "reading", time: "Flexible", task: "Novel / light reading", detail: "Continue weekend book. No market books — different input." },
+      { id: "sun-2", type: "rest", time: "All day", task: "Rest, recharge, prep the week", detail: "Groceries, meal prep, lay out the week. Chess. Call family." },
+      { id: "sun-3", type: "network", time: "Monthly: last Sunday", task: "Networking check-in", detail: "Once a month: one message to a contact. JPM VP, BofA Director, Jessica, or someone new." },
+      { id: "sun-4", type: "rest", time: "9:30 PM", task: "Wind down → Sleep by 10:00", detail: "Monday is coming." },
+    ],
+  },
+};
+
+const phases = [
+  {
+    name: "Phase 1: Foundation", months: "Months 1–3 · Mar – Jun 2026", color: "#D4A855",
+    tracks: [
+      { label: "Math", detail: "Algebra 2 → Pre-Calc → start Calc 1. All Khan Academy. Don't skip sections even if easy.", icon: "∑" },
+      { label: "Python", detail: "Finish Automate the Boring Stuff. Build 3-4 scripts: file renamer, PDF combiner, Excel formatter.", icon: "⌨" },
+      { label: "Markets", detail: "Daily pre-market check becomes automatic. Read Trading & Exchanges (Harris). Start weekly journal.", icon: "◎" },
+      { label: "Fitness", detail: "Establish PPL + Upper/Lower + swim. Don't optimize — show up 6x/week for 12 weeks.", icon: "◈" },
+      { label: "Career", detail: "Series 63 ✓ Resume to Jessica ✓ JPM VP ✓ GS recruiter ✓ Map mid-tier openings.", icon: "→" },
+    ],
+    milestones: ["Complete Automate the Boring Stuff", "Finish Algebra 2 + Pre-Calc", "12 weeks consecutive adherence", "3 networking conversations"],
+  },
+  {
+    name: "Phase 2: Building", months: "Months 4–6 · Jul – Sep 2026", color: "#5BA0D6",
+    tracks: [
+      { label: "Math", detail: "Calc 1 → Calc 2. Intro probability. Math connects to markets — options pricing, expected value.", icon: "∑" },
+      { label: "Python", detail: "pandas + numpy. Automate one real work report. yfinance. First backtest of a journal thesis.", icon: "⌨" },
+      { label: "Markets", detail: "Read Natenberg. 15+ weeks of journal. Paper trade one idea/month. Read Market Wizards.", icon: "◎" },
+      { label: "Fitness", detail: "Progressive overload. Track lifts. Increase run distance or swim pace.", icon: "◈" },
+      { label: "Career", detail: "2 new contacts/month. 1-2 industry events. Internal Citi move resolved or deprioritized.", icon: "→" },
+    ],
+    milestones: ["First Python automation at work", "First backtest completed", "Calc 1 complete", "Paper trade with P&L"],
+  },
+  {
+    name: "Phase 3: Application", months: "Months 7–9 · Oct – Dec 2026", color: "#5EAA6B",
+    tracks: [
+      { label: "Math", detail: "Probability & Stats deep dive. Intro Linear Algebra. Understand what quants tell you.", icon: "∑" },
+      { label: "Python", detail: "Proper backtesting framework. Portfolio analysis. 2-3 desk automations.", icon: "⌨" },
+      { label: "Markets", detail: "6+ months journal. 60-second pitch drill. Zetamac mental math 10 min/day.", icon: "◎" },
+      { label: "Fitness", detail: "Maintain. Don't sacrifice during job search.", icon: "◈" },
+      { label: "Career", detail: "Active apps. Interview prep: market questions, mental math, pitch-a-trade.", icon: "→" },
+    ],
+    milestones: ["Stats & Probability complete", "3+ desk automations", "Pitch a trade in 60 seconds", "Active apps at targets"],
+  },
+  {
+    name: "Phase 4: Push", months: "Months 10–12 · Jan – Mar 2027", color: "#B280CF",
+    tracks: [
+      { label: "Math", detail: "Linear Algebra. Touch stochastic concepts conceptually (Brownian motion, Itô's lemma).", icon: "∑" },
+      { label: "Python", detail: "Full backtesting + screeners. Personal toolkit for interviews.", icon: "⌨" },
+      { label: "Markets", detail: "9-12 months of documented views. Demonstrated judgment > book knowledge.", icon: "◎" },
+      { label: "Fitness", detail: "Maintain. NYC transition will disrupt — strong baseline means faster recovery.", icon: "◈" },
+      { label: "Career", detail: "Close the deal. Final rounds or offer. NYC logistics.", icon: "→" },
+    ],
+    milestones: ["Offer secured or final rounds", "12 months journal entries", "NYC move finalized", "Full Python toolkit"],
+  },
+];
+
+const readingList = [
+  { category: "Markets & Trading (Weekday reading)", books: [
+    { title: "Trading and Exchanges", author: "Larry Harris", when: "Months 1–3", why: "How markets work mechanically." },
+    { title: "Options, Volatility, and Pricing", author: "Sheldon Natenberg", when: "Months 3–5", why: "The derivatives bible." },
+    { title: "Market Wizards", author: "Jack Schwager", when: "Months 5–6", why: "How great traders think." },
+    { title: "The Man Who Solved the Market", author: "Gregory Zuckerman", when: "Months 6–7", why: "RenTech. Quantitative ceiling." },
+    { title: "Quantitative Trading", author: "Ernie Chan", when: "Months 7–9", why: "Bridges Python + math + markets." },
+    { title: "Dynamic Hedging", author: "Nassim Taleb", when: "Months 9–12", why: "Advanced derivatives risk." },
+  ]},
+  { category: "Python & Technical", books: [
+    { title: "Automate the Boring Stuff", author: "Al Sweigart", when: "Months 1–3", why: "Already started. Finish it." },
+    { title: "Python for Finance", author: "Yves Hilpisch", when: "Months 4–6", why: "Time series, portfolio optimization." },
+  ]},
+  { category: "Novels & Communication (Weekend)", books: [
+    { title: "Liar's Poker", author: "Michael Lewis", when: "Anytime", why: "Wall Street inside." },
+    { title: "The Psychology of Money", author: "Morgan Housel", when: "Anytime", why: "Clear thinking on risk." },
+    { title: "Thinking, Fast and Slow", author: "Daniel Kahneman", when: "Months 3–6", why: "Cognitive biases in trading." },
+    { title: "Barbarians at the Gate", author: "Burrough & Helyar", when: "Anytime", why: "Classic deal narrative." },
+    { title: "Meditations", author: "Marcus Aurelius", when: "Anytime", why: "Stoic framework." },
+  ]},
+];
+
+const weeklyTotals = {
+  math: "~6 hrs", python: "~6 hrs", market: "~3.5 hrs",
+  physical: "~7 hrs", reading: "~5 hrs", sleep: "7–8 hrs · 10p–6a",
+};
+
+const splitDays = [
+  { day: "Mon", lift: "Push", cardio: "" },
+  { day: "Tue", lift: "", cardio: "Swim" },
+  { day: "Wed", lift: "Pull", cardio: "" },
+  { day: "Thu", lift: "Legs", cardio: "" },
+  { day: "Fri", lift: "Upper", cardio: "" },
+  { day: "Sat", lift: "Lower", cardio: "Run" },
+  { day: "Sun", lift: "", cardio: "Rest" },
+];
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return { checked: {}, bookStatus: {}, streakStart: null };
+}
+
+function saveData(data) {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); } catch {}
+}
+
+function getTodayKey() {
+  return new Date().toISOString().split("T")[0];
+}
+
+function App() {
+  const [activeTab, setActiveTab] = useState(0);
+  const todayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][new Date().getDay()];
+  const [selectedDay, setSelectedDay] = useState(todayName);
+  const [data, setData] = useState(loadData);
+  const [expandedPhase, setExpandedPhase] = useState(0);
+
+  const checked = data.checked || {};
+  const bookStatus = data.bookStatus || {};
+
+  const update = useCallback((fn) => {
+    setData(prev => {
+      const next = fn(prev);
+      saveData(next);
+      return next;
+    });
+  }, []);
+
+  const toggleCheck = (id) => {
+    const dayKey = getTodayKey();
+    update(prev => ({
+      ...prev,
+      checked: { ...prev.checked, [`${dayKey}:${id}`]: !prev.checked[`${dayKey}:${id}`] }
+    }));
+  };
+
+  const isChecked = (id) => {
+    const dayKey = getTodayKey();
+    return !!checked[`${dayKey}:${id}`];
+  };
+
+  const resetDay = () => {
+    const dayKey = getTodayKey();
+    const dayBlocks = schedule[selectedDay].blocks.map(b => b.id);
+    update(prev => {
+      const next = { ...prev, checked: { ...prev.checked } };
+      dayBlocks.forEach(id => delete next.checked[`${dayKey}:${id}`]);
+      return next;
+    });
+  };
+
+  const cycleBook = (title) => {
+    const states = ["unread", "reading", "done"];
+    const current = bookStatus[title] || "unread";
+    const idx = states.indexOf(current);
+    const next = states[(idx + 1) % 3];
+    update(prev => ({ ...prev, bookStatus: { ...prev.bookStatus, [title]: next } }));
+  };
+
+  const dayNames = Object.keys(schedule);
+  const dayData = schedule[selectedDay];
+  const dayKey = getTodayKey();
+  const dayCheckedCount = dayData.blocks.filter(b => checked[`${dayKey}:${b.id}`]).length;
+  const dayTotal = dayData.blocks.length;
+  const isToday = selectedDay === todayName;
+
+  // Calculate streak
+  const getStreak = () => {
+    let streak = 0;
+    const d = new Date();
+    for (let i = 1; i <= 365; i++) {
+      d.setDate(d.getDate() - (i === 1 ? 1 : 1));
+      const key = d.toISOString().split("T")[0];
+      const dayName = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"][d.getDay()];
+      if (dayName === "Sunday") { streak++; continue; }
+      const blocks = schedule[dayName].blocks;
+      const studyBlocks = blocks.filter(b => ["math","python","market"].includes(b.type));
+      const doneCount = studyBlocks.filter(b => checked[`${key}:${b.id}`]).length;
+      if (doneCount >= Math.ceil(studyBlocks.length * 0.5)) { streak++; } else { break; }
+    }
+    return streak;
+  };
+
+  const TABS = [
+    { label: "Schedule", icon: "▦" },
+    { label: "Roadmap", icon: "◈" },
+    { label: "Books", icon: "▣" },
+  ];
+
+  return (
+    <div style={{ minHeight: "100vh" }}>
+      {/* Header */}
+      <div style={{ padding: "24px 20px 0", maxWidth: 600, margin: "0 auto" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 4 }}>
+          <div>
+            <h1 style={{ fontSize: 20, fontWeight: 700, color: "var(--gold)", letterSpacing: "-0.5px" }}>THE PLAN</h1>
+            <p style={{ fontSize: 11, color: "var(--text4)", fontFamily: "var(--mono)", marginTop: 2 }}>MAR 2026 → MAR 2027</p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: 11, color: "var(--text4)", fontFamily: "var(--mono)" }}>STREAK</div>
+            <div style={{ fontSize: 20, fontWeight: 700, color: "var(--green)" }}>{getStreak()}</div>
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{ display: "flex", gap: 0, borderBottom: "1px solid var(--border)", marginTop: 16 }}>
+          {TABS.map((tab, i) => (
+            <button key={i} onClick={() => setActiveTab(i)}
+              style={{
+                flex: 1, background: "none", border: "none", padding: "10px 0",
+                color: activeTab === i ? "var(--gold)" : "var(--text4)",
+                fontSize: 12, fontWeight: activeTab === i ? 600 : 400,
+                borderBottom: activeTab === i ? "2px solid var(--gold)" : "2px solid transparent",
+                fontFamily: "var(--sans)", transition: "all 0.2s",
+              }}
+            ><span style={{ marginRight: 6, fontSize: 10 }}>{tab.icon}</span>{tab.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ maxWidth: 600, margin: "0 auto", padding: "0 20px 100px" }}>
+
+        {/* SCHEDULE TAB */}
+        {activeTab === 0 && (
+          <div className="fade-in" style={{ paddingTop: 16 }}>
+            {/* Day pills */}
+            <div style={{ display: "flex", gap: 4, marginBottom: 16, overflowX: "auto", paddingBottom: 4 }}>
+              {dayNames.map(d => {
+                const isActive = d === selectedDay;
+                const isT = d === todayName;
+                const blocks = schedule[d].blocks;
+                const dk = getTodayKey();
+                const dc = isT ? blocks.filter(b => checked[`${dk}:${b.id}`]).length : 0;
+                const allDone = isT && dc === blocks.length && blocks.length > 0;
+                return (
+                  <button key={d} onClick={() => setSelectedDay(d)}
+                    style={{
+                      flex: "1 0 auto", minWidth: 42, padding: "8px 6px",
+                      background: isActive ? "var(--surface)" : "transparent",
+                      border: isActive ? "1px solid var(--border2)" : isT ? "1px solid var(--border)" : "1px solid transparent",
+                      borderRadius: 8, fontSize: 11, fontFamily: "var(--mono)",
+                      color: allDone ? "var(--green)" : isActive ? "var(--text)" : "var(--text4)",
+                      fontWeight: isActive ? 600 : 400, textAlign: "center",
+                    }}
+                  >{d.slice(0,3)}{isT && <div style={{ width: 4, height: 4, borderRadius: 2, background: "var(--gold)", margin: "3px auto 0" }}/>}</button>
+                );
+              })}
+            </div>
+
+            {/* Day header */}
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+              <div>
+                <h2 style={{ fontSize: 17, fontWeight: 600 }}>{selectedDay}</h2>
+                <p style={{ fontSize: 11, color: "var(--text3)", fontFamily: "var(--mono)" }}>{dayData.subtitle}</p>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                {isToday && <span style={{ fontSize: 11, color: "var(--text4)", fontFamily: "var(--mono)" }}>{dayCheckedCount}/{dayTotal}</span>}
+                {isToday && (
+                  <button onClick={resetDay}
+                    style={{ background: "none", border: "1px solid var(--border2)", borderRadius: 6, color: "var(--text4)", fontSize: 10, padding: "3px 8px", fontFamily: "var(--mono)" }}
+                  >RESET</button>
+                )}
+              </div>
+            </div>
+
+            {/* Blocks */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {dayData.blocks.map((block, bi) => {
+                const done = isToday && isChecked(block.id);
+                const clr = COLORS[block.type];
+                return (
+                  <div key={block.id}
+                    onClick={() => isToday && toggleCheck(block.id)}
+                    style={{
+                      display: "flex", gap: 10, padding: "11px 12px",
+                      background: done ? "var(--surface2)" : "var(--surface)",
+                      borderRadius: 8, cursor: isToday ? "pointer" : "default",
+                      borderLeft: `3px solid ${done ? "var(--text6)" : clr}`,
+                      opacity: done ? 0.45 : 1, transition: "all 0.15s",
+                      animation: `fadeIn 0.2s ease ${bi * 0.03}s both`,
+                    }}
+                  >
+                    {isToday && (
+                      <div className={done ? "check-pop" : ""} style={{
+                        width: 17, height: 17, borderRadius: 4, flexShrink: 0, marginTop: 1,
+                        border: done ? "2px solid var(--green)" : "2px solid var(--text6)",
+                        background: done ? "var(--green)" : "transparent",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 10, color: "var(--bg)", fontWeight: 700,
+                      }}>{done && "✓"}</div>
+                    )}
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 2, flexWrap: "wrap" }}>
+                        <span style={{ fontSize: 8, fontWeight: 600, color: clr, letterSpacing: "0.5px", fontFamily: "var(--mono)" }}>{LABELS[block.type]}</span>
+                        <span style={{ fontSize: 10, color: "var(--text5)", fontFamily: "var(--mono)" }}>{block.time}</span>
+                      </div>
+                      <p style={{ fontSize: 13, fontWeight: 500, color: done ? "var(--text4)" : "var(--text)", textDecoration: done ? "line-through" : "none", marginBottom: block.detail ? 2 : 0 }}>{block.task}</p>
+                      {block.detail && <p style={{ fontSize: 11, color: "var(--text3)", lineHeight: 1.4 }}>{block.detail}</p>}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Weekly totals */}
+            <div style={{ marginTop: 24, padding: "14px 12px", background: "var(--surface)", borderRadius: 8, border: "1px solid var(--border)" }}>
+              <h3 style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", letterSpacing: "0.5px", fontFamily: "var(--mono)", marginBottom: 10 }}>WEEKLY TOTALS</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "6px 20px" }}>
+                {Object.entries(weeklyTotals).map(([k, v]) => (
+                  <div key={k} style={{ display: "flex", justifyContent: "space-between" }}>
+                    <span style={{ fontSize: 11, color: COLORS[k] || "var(--text3)", fontWeight: 500 }}>{k.charAt(0).toUpperCase()+k.slice(1)}</span>
+                    <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--mono)" }}>{v}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Split */}
+            <div style={{ marginTop: 8, padding: "12px", background: "var(--surface)", borderRadius: 8, border: "1px solid var(--border)" }}>
+              <h3 style={{ fontSize: 10, fontWeight: 600, color: "var(--green)", letterSpacing: "0.5px", fontFamily: "var(--mono)", marginBottom: 8 }}>WEEKLY SPLIT</h3>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: 4 }}>
+                {splitDays.map(d => (
+                  <div key={d.day} style={{ padding: "6px 2px", background: "var(--surface2)", borderRadius: 5, textAlign: "center" }}>
+                    <div style={{ fontSize: 9, color: "var(--text4)", fontFamily: "var(--mono)", marginBottom: 3 }}>{d.day}</div>
+                    {d.lift && <div style={{ fontSize: 10, color: "var(--green)", fontWeight: 600 }}>{d.lift}</div>}
+                    {d.cardio && <div style={{ fontSize: 9, color: d.cardio === "Rest" ? "var(--text5)" : "var(--blue)" }}>{d.cardio}</div>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* ROADMAP TAB */}
+        {activeTab === 1 && (
+          <div className="fade-in" style={{ paddingTop: 16 }}>
+            {phases.map((phase, pi) => {
+              const isOpen = expandedPhase === pi;
+              return (
+                <div key={pi} style={{ marginBottom: 10 }}>
+                  <div onClick={() => setExpandedPhase(isOpen ? -1 : pi)}
+                    style={{
+                      padding: "12px 14px", background: "var(--surface)",
+                      borderRadius: isOpen ? "8px 8px 0 0" : 8,
+                      cursor: "pointer", borderLeft: `3px solid ${phase.color}`,
+                      display: "flex", justifyContent: "space-between", alignItems: "center",
+                    }}
+                  >
+                    <div>
+                      <h3 style={{ fontSize: 14, fontWeight: 600, color: phase.color, marginBottom: 1 }}>{phase.name}</h3>
+                      <p style={{ fontSize: 10, color: "var(--text3)", fontFamily: "var(--mono)" }}>{phase.months}</p>
+                    </div>
+                    <span style={{ fontSize: 16, color: "var(--text5)", transform: isOpen ? "rotate(90deg)" : "none", transition: "0.2s" }}>›</span>
+                  </div>
+                  {isOpen && (
+                    <div className="fade-in" style={{ background: "var(--surface2)", borderRadius: "0 0 8px 8px", padding: "14px", borderLeft: `3px solid ${phase.color}` }}>
+                      {phase.tracks.map((t, ti) => (
+                        <div key={ti} style={{ marginBottom: 12, paddingBottom: 12, borderBottom: ti < phase.tracks.length - 1 ? "1px solid var(--border)" : "none" }}>
+                          <div style={{ display: "flex", alignItems: "center", gap: 7, marginBottom: 3 }}>
+                            <span style={{ fontSize: 13 }}>{t.icon}</span>
+                            <span style={{ fontSize: 12, fontWeight: 600 }}>{t.label}</span>
+                          </div>
+                          <p style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.5, paddingLeft: 20 }}>{t.detail}</p>
+                        </div>
+                      ))}
+                      <div style={{ marginTop: 6, padding: "10px", background: "var(--surface)", borderRadius: 6 }}>
+                        <h4 style={{ fontSize: 9, fontWeight: 600, color: "var(--gold)", letterSpacing: "0.5px", fontFamily: "var(--mono)", marginBottom: 6 }}>MILESTONES</h4>
+                        {phase.milestones.map((m, mi) => (
+                          <div key={mi} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4 }}>
+                            <span style={{ color: "var(--text5)", fontSize: 10 }}>◇</span>
+                            <span style={{ fontSize: 11, color: "#BBB" }}>{m}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div style={{ marginTop: 16, padding: "12px 14px", background: "var(--surface)", borderRadius: 8, borderLeft: "3px solid var(--coral)" }}>
+              <h4 style={{ fontSize: 10, fontWeight: 600, color: "var(--coral)", letterSpacing: "0.5px", fontFamily: "var(--mono)", marginBottom: 6 }}>DON'T FORGET</h4>
+              <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                <p style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.5 }}><strong style={{ color: "#CCC" }}>60-second trade pitch.</strong> By month 6, pitch your weekly thesis in under 60 seconds.</p>
+                <p style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.5 }}><strong style={{ color: "#CCC" }}>Mental math.</strong> Zetamac 10 min/day starting month 7.</p>
+                <p style={{ fontSize: 11, color: "var(--text2)", lineHeight: 1.5 }}><strong style={{ color: "#CCC" }}>Cross-product.</strong> By month 9: rates, credit, FX, commodities conversational fluency.</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* BOOKS TAB */}
+        {activeTab === 2 && (
+          <div className="fade-in" style={{ paddingTop: 16 }}>
+            {readingList.map((cat, ci) => (
+              <div key={ci} style={{ marginBottom: 20 }}>
+                <h3 style={{ fontSize: 10, fontWeight: 600, color: "var(--text3)", letterSpacing: "0.5px", fontFamily: "var(--mono)", marginBottom: 10 }}>{cat.category.toUpperCase()}</h3>
+                <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+                  {cat.books.map(book => {
+                    const status = bookStatus[book.title] || "unread";
+                    const clrs = { unread: "var(--text5)", reading: "var(--gold)", done: "var(--green)" };
+                    const lbls = { unread: "—", reading: "READING", done: "DONE" };
+                    return (
+                      <div key={book.title} onClick={() => cycleBook(book.title)}
+                        style={{
+                          padding: "10px 12px", background: "var(--surface)", borderRadius: 8, cursor: "pointer",
+                          borderLeft: `3px solid ${clrs[status]}`, opacity: status === "done" ? 0.55 : 1,
+                        }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div>
+                            <span style={{ fontSize: 13, fontWeight: 500, textDecoration: status === "done" ? "line-through" : "none", color: status === "done" ? "var(--text3)" : "var(--text)" }}>{book.title}</span>
+                            <span style={{ fontSize: 11, color: "var(--text3)", marginLeft: 6 }}>— {book.author}</span>
+                          </div>
+                          <span style={{ fontSize: 8, fontWeight: 600, color: clrs[status], fontFamily: "var(--mono)", whiteSpace: "nowrap", marginLeft: 10 }}>{lbls[status]}</span>
+                        </div>
+                        <div style={{ display: "flex", gap: 10, marginTop: 3, flexWrap: "wrap" }}>
+                          <span style={{ fontSize: 10, color: "var(--text4)", fontFamily: "var(--mono)" }}>{book.when}</span>
+                          <span style={{ fontSize: 10, color: "var(--text3)" }}>{book.why}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <p style={{ fontSize: 10, color: "var(--text5)", fontStyle: "italic" }}>Tap to cycle: unread → reading → done</p>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
